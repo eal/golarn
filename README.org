@@ -1,0 +1,8 @@
+
+
+
+* Testing
+** Testing hooks
+#+BEGIN_EXAMPLE
+for i in events/*.json; do echo -n $i '== ' ; curl -XPOST localhost:8080/post -H "Content-Type: application/json" -d@$i; done
+#+END_EXAMPLE
