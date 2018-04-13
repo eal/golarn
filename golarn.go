@@ -14,7 +14,7 @@ func handleEmpty(event map[string]interface{}) string {
 	return fmt.Sprintf("Got empty object_kind: %s", event)
 }
 func handleUnknown(event map[string]interface{}) string {
-	return fmt.Sprintf("Got unknown object_kind: %s", event)
+	return fmt.Sprintf("Got unknown object_kind: %s", event["object_kind"])
 }
 
 func handlePush(event map[string]interface{}) string {
@@ -69,16 +69,37 @@ func handlePush(event map[string]interface{}) string {
 func handleTag(event map[string]interface{}) string {
 	return "Tage Taggelito"
 }
+func handleBuild(event map[string]interface{}) string {
+	return "Byggare Bob"
+}
+func handleNote(event map[string]interface{}) string {
+	return "Note this!"
+}
+func handleIssue(event map[string]interface{}) string {
+	return "Issue"
+}
+func handleMergeRequest(event map[string]interface{}) string {
+	return "merge request"
+}
+func handlePipeline(event map[string]interface{}) string {
+	return "pipeline"
+}
+func handleTagPush(event map[string]interface{}) string {
+	return "pipeline"
+}
+func handleWikiPage(event map[string]interface{}) string {
+	return "wiki page"
+}
 
 func main() {
-	nick := flag.String("nick", "goltupp", "nickname")
+	nick := flag.String("nick", "golarn", "nickname")
 	username := flag.String("username", *nick, "username")
 	useTLS := flag.Bool("tls", true, "Use TLS")
 	server := flag.String("server", "efnet.port80.se:6697", "server:port")
-	channel := flag.String("channel", "#goltupp_test", "channel to join")
+	channel := flag.String("channel", "#golarn_test", "channel to join")
 	adminNick := flag.String("admin", "someadminuser", "admin nickname")
 	password := flag.String("password", "t0ps3cr3t", "password")
-	part := flag.String("part", "#notmychannel", "leave auto-joined channel on startup")
+	part := flag.String("part", "", "leave auto-joined channel on startup")
 
 	flag.Parse()
 
@@ -91,7 +112,9 @@ func main() {
 
 	irccon.AddCallback("001", func(e *irc.Event) {
 		irccon.Join(*channel)
-		irccon.Part(*part)
+		if *part != "" {
+			irccon.Part(*part)
+		}
 	})
 	irccon.AddCallback("366", func(e *irc.Event) {})
 	err := irccon.Connect(*server)
@@ -105,6 +128,11 @@ func main() {
 		decoder := json.NewDecoder(r.Body)
 		var t interface{}
 		err := decoder.Decode(&t)
+		if t == nil {
+			// got some garbage posted
+			fmt.Fprintf(w, "Error: got garbage: %s\n", r.Body)
+			return
+		}
 		m := t.(map[string]interface{})
 		if err != nil {
 			irccon.Privmsgf(*channel, "Got JSON decoding error %s", err)
@@ -113,8 +141,15 @@ func main() {
 		// log.Println(t.Test)
 		fmt.Fprintf(w, "OK\n")
 		handleMap := map[string]func(map[string]interface{}) string{}
+		handleMap["build"] = handleBuild
+		handleMap["issue"] = handleIssue
+		handleMap["merge_request"] = handleMergeRequest
+		handleMap["note"] = handleNote
+		handleMap["pipeline"] = handlePipeline
 		handleMap["push"] = handlePush
 		handleMap["tag_push"] = handleTag
+		handleMap["tag_push"] = handleTagPush
+		handleMap["wiki_page"] = handleWikiPage
 		lookup, ok := m["object_kind"]
 		if ok {
 			objectKind := fmt.Sprintf("%s", lookup)
