@@ -85,7 +85,7 @@ func handlePipeline(event map[string]interface{}) string {
 	return "pipeline"
 }
 func handleTagPush(event map[string]interface{}) string {
-	return "pipeline"
+	return "tag push"
 }
 func handleWikiPage(event map[string]interface{}) string {
 	return "wiki page"
@@ -93,7 +93,7 @@ func handleWikiPage(event map[string]interface{}) string {
 
 func main() {
 	nick := flag.String("nick", "golarn", "nickname")
-	username := flag.String("username", *nick, "username")
+	username := flag.String("username", "golarn", "username")
 	useTLS := flag.Bool("tls", true, "Use TLS")
 	server := flag.String("server", "efnet.port80.se:6697", "server:port")
 	channel := flag.String("channel", "#golarn_test", "channel to join")
