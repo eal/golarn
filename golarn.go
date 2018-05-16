@@ -20,107 +20,10 @@ func handleUnknown(event map[string]interface{}, tmplString string) string {
 	return fmt.Sprintf("Got unknown object_kind: %s", event["object_kind"])
 }
 
-func handlePush(event map[string]interface{}, tmplString string) string {
-	if tmplString == "" {
-		tmplString = "Push {{.}}"
-	}
-	tmpl, err := template.New("test").Parse(tmplString)
-	if err != nil {
-		panic(err)
-	}
-	var b bytes.Buffer
-	err = tmpl.Execute(&b, event)
-	if err != nil {
-		panic(err)
-	}
-	return b.String()
-
-	// project := event["project"].(map[string]interface{})
-	// var ownCommits, othersCommits int
-	// var commitMsg string
-	// switch vv := event["commits"].(type) {
-	// case []interface{}:
-	// 	for _, commit := range vv {
-	// 		c := commit.(map[string]interface{})
-	// 		commitMsg = c["message"].(string)
-	// 		if event["user_email"] == c["author"].(map[string]interface{})["email"] {
-	// 			ownCommits++
-	// 		} else {
-	// 			othersCommits++
-	// 		}
-	// 	}
-	// default:
-	// 	return fmt.Sprintf("unable to parse event commits %s", event)
-	// }
-	// ref := event["ref"].(string)
-	// var branch_msg string
-	// if ref[11:] != project["default_branch"] {
-	// 	branch_msg = fmt.Sprintf(" (%s)", ref[11:])
-	// }
-
-	// var totalCommits float64
-	// switch v := event["total_commits_count"].(type) {
-	// case float64:
-	// 	totalCommits = v
-	// }
-
-	// if ownCommits > 1 || othersCommits > 0 {
-	// 	return fmt.Sprintf("Push from %s on %s%s: [%d commits by self, %d commits by others, total %.0f] ",
-	// 		event["user_username"],
-	// 		project["name"],
-	// 		branch_msg,
-	// 		ownCommits,
-	// 		othersCommits,
-	// 		totalCommits,
-	// 	)
-
-	// } else {
-	// 	return fmt.Sprintf("Push from %s on %s%s: %s",
-	// 		event["user_username"],
-	// 		project["name"],
-	// 		branch_msg,
-	// 		commitMsg,
-	// 	)
-	// }
-}
-func handleTag(event map[string]interface{}, tmplString string) string {
-	return "Tage Taggelito"
-}
-func handleBuild(event map[string]interface{}, tmplString string) string {
-	return "Byggare Bob"
-}
-func handleNote(event map[string]interface{}, tmplString string) string {
-	return "Note this!"
-}
-func handleIssue(event map[string]interface{}, tmplString string) string {
-	return "Issue"
-}
-func handleMergeRequest(event map[string]interface{}, tmplString string) string {
-	return "merge request"
-}
-func handlePipeline(event map[string]interface{}, tmplString string) string {
-	return "pipeline"
-}
-func handleTagPush(event map[string]interface{}, tmplString string) string {
-	if tmplString == "" {
-		tmplString = "tag push: {{.}}"
-	}
-	tmpl, err := template.New("test").Parse(tmplString)
-	if err != nil {
-		panic(err)
-	}
-	var b bytes.Buffer
-	err = tmpl.Execute(&b, event)
-	if err != nil {
-		panic(err)
-	}
-	return b.String()
-}
-func handleWikiPage(event map[string]interface{}, tmplString string) string {
-	return "wiki page"
-}
-
 func handleGeneric(event map[string]interface{}, tmplString string) string {
+	if tmplString == "" {
+		tmplString = "{{.object_kind}}: {{.}}"
+	}
 	tmpl, err := template.New("test").Parse(tmplString)
 	if err != nil {
 		panic(err)
@@ -149,7 +52,7 @@ func main() {
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
 	password := flag.String("password", withDefault(os.Getenv("GOLARN_PASSWORD"), "t0ps3cr3t"), "password")
 	part := flag.String("part", withDefault(os.Getenv("GOLARN_PART"), ""), "leave auto-joined channel on startup")
-
+	dummy := flag.Bool("dummy", false, "dummy/debug (don't connect to IRC, just print to stdout)")
 	tlsString := os.Getenv("GOLARN_TLS")
 
 	// Roundabout way to set TLS option
@@ -165,7 +68,9 @@ func main() {
 	}
 
 	flag.Parse()
-
+	if *dummy {
+		fmt.Println("dummy: ", *dummy)
+	}
 	irccon := irc.IRC(*nick, *username)
 	irccon.Password = *password
 	irccon.VerboseCallbackHandler = true
@@ -180,12 +85,15 @@ func main() {
 		}
 	})
 	irccon.AddCallback("366", func(e *irc.Event) {})
-	err := irccon.Connect(*server)
-	if err != nil {
-		fmt.Printf("Err %s", err)
-		return
+	if !*dummy {
+		err := irccon.Connect(*server)
+		if err != nil {
+			fmt.Printf("Err %s", err)
+			return
+		}
+
+		go irccon.Loop()
 	}
-	go irccon.Loop()
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -221,7 +129,7 @@ func main() {
 		tmplMap["merge_request"] = withDefault(os.Getenv("GOLARN_MERGE_REQUEST_TEMPLATE"), "")
 		tmplMap["note"] = withDefault(os.Getenv("GOLARN_NOTE_TEMPLATE"), "")
 		tmplMap["pipeline"] = withDefault(os.Getenv("GOLARN_PIPELINE_TEMPLATE"), "")
-		tmplMap["push"] = withDefault(os.Getenv("GOLARN_PUSH_TEMPLATE"), "Push from {{.user_username}} on {{.project.name}}: {{if .total_commits_count==1}}{{.commits[0].comment}}")
+		tmplMap["push"] = withDefault(os.Getenv("GOLARN_PUSH_TEMPLATE"), "Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) \"1\"}} {{- (index .commits 0).message}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before}}...{{.after}}{{end}}")
 		tmplMap["tag_push"] = withDefault(os.Getenv("GOLARN_TAG_PUSH_TEMPLATE"), "tag push: {{.}}")
 		tmplMap["wiki_page"] = withDefault(os.Getenv("GOLARN_WIKI_PAGE_TEMPLATE"), "")
 		// tmplMap["tag_push"] = ""
@@ -232,12 +140,24 @@ func main() {
 			handleFunc, ok := handleMap[objectKind]
 			if ok {
 				tmpl, _ := tmplMap[objectKind]
-				irccon.Privmsg(*channel, handleFunc(m, tmpl))
+				if !*dummy {
+					irccon.Privmsg(*channel, handleFunc(m, tmpl))
+				} else {
+					fmt.Println(handleFunc(m, tmpl))
+				}
 			} else {
-				irccon.Privmsg(*adminNick, handleUnknown(m, ""))
+				if !*dummy {
+					irccon.Privmsg(*adminNick, handleUnknown(m, ""))
+				} else {
+					fmt.Println(handleUnknown(m, ""))
+				}
 			}
 		} else {
-			irccon.Privmsg(*adminNick, handleEmpty(m, ""))
+			if !*dummy {
+				irccon.Privmsg(*adminNick, handleEmpty(m, ""))
+			} else {
+				fmt.Println(handleEmpty(m, ""))
+			}
 		}
 	}
 
