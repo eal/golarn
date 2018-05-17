@@ -22,9 +22,9 @@ func handleUnknown(event map[string]interface{}, tmplString string) string {
 }
 
 func handleGeneric(event map[string]interface{}, tmplString string) string {
-	if tmplString == "" {
-		tmplString = "{{.object_kind}}: {{printf \"%#v\" .}}"
-	}
+	// if tmplString == "" {
+	// 	tmplString = "{{.object_kind}}: {{.}}"
+	// }
 	tmpl, err := gtf.New("test").Parse(tmplString)
 	if err != nil {
 		panic(err)
@@ -125,14 +125,14 @@ func main() {
 		handleMap["wiki_page"] = handleGeneric
 
 		tmplMap := make(map[string]string)
-		tmplMap["build"] = withDefault(os.Getenv("GOLARN_BUILD_TEMPLATE"), "")
-		tmplMap["issue"] = withDefault(os.Getenv("GOLARN_ISSUE_TEMPLATE"), "")
-		tmplMap["merge_request"] = withDefault(os.Getenv("GOLARN_MERGE_REQUEST_TEMPLATE"), "")
-		tmplMap["note"] = withDefault(os.Getenv("GOLARN_NOTE_TEMPLATE"), "")
-		tmplMap["pipeline"] = withDefault(os.Getenv("GOLARN_PIPELINE_TEMPLATE"), "")
+		tmplMap["build"] = withDefault(os.Getenv("GOLARN_BUILD_TEMPLATE"), "{{.object_kind}}: {{.}}")
+		tmplMap["issue"] = withDefault(os.Getenv("GOLARN_ISSUE_TEMPLATE"), "{{.object_kind}}: {{.}}")
+		tmplMap["merge_request"] = withDefault(os.Getenv("GOLARN_MERGE_REQUEST_TEMPLATE"), "{{.object_kind}}: {{.}}")
+		tmplMap["note"] = withDefault(os.Getenv("GOLARN_NOTE_TEMPLATE"), "{{.object_kind}}: {{.}}")
+		tmplMap["pipeline"] = withDefault(os.Getenv("GOLARN_PIPELINE_TEMPLATE"), "Pipeline: {{.}}")
 		tmplMap["push"] = withDefault(os.Getenv("GOLARN_PUSH_TEMPLATE"), "Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) \"1\"}} {{- (index .commits 0).message|truncatechars 50}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before|slice 0 7}}...{{.after|slice 0 7}}{{end}}")
-		tmplMap["tag_push"] = withDefault(os.Getenv("GOLARN_TAG_PUSH_TEMPLATE"), "tag push: {{.}}")
-		tmplMap["wiki_page"] = withDefault(os.Getenv("GOLARN_WIKI_PAGE_TEMPLATE"), "")
+		tmplMap["tag_push"] = withDefault(os.Getenv("GOLARN_TAG_PUSH_TEMPLATE"), "{{.object_kind}}: {{.}}")
+		tmplMap["wiki_page"] = withDefault(os.Getenv("GOLARN_WIKI_PAGE_TEMPLATE"), "{{.object_kind}}: {{.}}")
 		// tmplMap["tag_push"] = ""
 
 		lookup, ok := m["object_kind"]
