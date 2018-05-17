@@ -75,7 +75,7 @@ func main() {
 	irccon := irc.IRC(*nick, *username)
 	irccon.Password = *password
 	irccon.VerboseCallbackHandler = true
-	irccon.Debug = true
+	irccon.Debug = *dummy
 	irccon.UseTLS = useTLS
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
