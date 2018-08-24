@@ -45,7 +45,18 @@ func withDefault(value string, fallback string) string {
 	}
 }
 
+func withDefaultBool(value string, fallback bool) bool {
+	if value == "TRUE" {
+		return true
+	} else if value == "FALSE" {
+		return false
+	} else {
+		return fallback
+	}
+}
+
 func main() {
+	fmt.Println("Golare har inga polare")
 	nick := flag.String("nick", withDefault(os.Getenv("GOLARN_NICK"), "golarn"), "nickname")
 	username := flag.String("username", withDefault(os.Getenv("GOLARN_USER"), "golarn"), "username")
 	server := flag.String("server", withDefault(os.Getenv("GOLARN_SERVER"), "efnet.port80.se:6697"), "server:port")
@@ -53,7 +64,7 @@ func main() {
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
 	password := flag.String("password", withDefault(os.Getenv("GOLARN_PASSWORD"), "t0ps3cr3t"), "password")
 	part := flag.String("part", withDefault(os.Getenv("GOLARN_PART"), ""), "leave auto-joined channel on startup")
-	dummy := flag.Bool("dummy", false, "dummy/debug (don't connect to IRC, just print to stdout)")
+	dummy := flag.Bool("dummy", withDefaultBool(os.Getenv("GOLARN_DUMMY"), false), "dummy/debug (don't connect to IRC, just print to stdout)")
 	tlsString := os.Getenv("GOLARN_TLS")
 
 	// Roundabout way to set TLS option
@@ -163,5 +174,10 @@ func main() {
 	}
 
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Golare har inga polare")
+	})
+	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Shutting down")
 }
