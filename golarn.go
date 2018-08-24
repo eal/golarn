@@ -62,8 +62,8 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("Golare har inga polare")
-	nick := flag.String("nick", withDefault(os.Getenv("GOLARN_NICK"), "golarn"), "nickname")
-	username := flag.String("username", withDefault(os.Getenv("GOLARN_USER"), "golarn"), "username")
+	nick := flag.String("nick", withDefault(os.Getenv("GOLARN_NICK"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "nickname")
+	username := flag.String("username", withDefault(os.Getenv("GOLARN_USER"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "username")
 	server := flag.String("server", withDefault(os.Getenv("GOLARN_SERVER"), "efnet.port80.se:6697"), "server:port")
 	channel := flag.String("channel", withDefault(os.Getenv("GOLARN_CHANNEL"), "#golarn_test"), "channel to join")
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
