@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	// "text/template"
+	"strings"
 )
 
 func handleEmpty(event map[string]interface{}, tmplString string) string {
@@ -46,13 +47,17 @@ func withDefault(value string, fallback string) string {
 }
 
 func withDefaultBool(value string, fallback bool) bool {
-	if value == "TRUE" {
+	if strings.ToLower(value) == "true" {
 		return true
-	} else if value == "FALSE" {
+	} else if strings.ToLower(value) == "false" {
 		return false
 	} else {
 		return fallback
 	}
+}
+
+func healthz(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Golare har inga polare")
 }
 
 func main() {
@@ -176,9 +181,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Golare har inga polare")
-	})
+	http.HandleFunc("/healthz", healthz)
 	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	fmt.Println("Shutting down")
