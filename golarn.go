@@ -64,7 +64,9 @@ func main() {
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
 	password := flag.String("password", withDefault(os.Getenv("GOLARN_PASSWORD"), "t0ps3cr3t"), "password")
 	part := flag.String("part", withDefault(os.Getenv("GOLARN_PART"), ""), "leave auto-joined channel on startup")
-	dummy := flag.Bool("dummy", withDefaultBool(os.Getenv("GOLARN_DUMMY"), false), "dummy/debug (don't connect to IRC, just print to stdout)")
+	dummy := flag.Bool("dummy", withDefaultBool(os.Getenv("GOLARN_DUMMY"), false), "dummy (don't connect to IRC, just print to stdout)")
+	verbose := flag.Bool("verbose", withDefaultBool(os.Getenv("GOLARN_VERBOSE"), false), "verbose (more messages)")
+	debug := flag.Bool("debug", withDefaultBool(os.Getenv("GOLARN_DEBUG"), false), "debug (more more messages)")
 	tlsString := os.Getenv("GOLARN_TLS")
 
 	// Roundabout way to set TLS option
@@ -85,8 +87,8 @@ func main() {
 	}
 	irccon := irc.IRC(*nick, *username)
 	irccon.Password = *password
-	irccon.VerboseCallbackHandler = true
-	irccon.Debug = *dummy
+	irccon.VerboseCallbackHandler = *verbose
+	irccon.Debug = *debug
 	irccon.UseTLS = useTLS
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
