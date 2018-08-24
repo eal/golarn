@@ -14,3 +14,10 @@ docker: golarn
 
 push:
 	sudo docker push docker.io/datatyp/golarn:latest
+
+.PHONY: test
+test: golarn.go golarn_test.go
+	go test -cover -v
+
+testloop:
+	ag -l | entr make test
