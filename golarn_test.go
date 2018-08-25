@@ -78,6 +78,16 @@ func TestHandleGeneric1(t *testing.T) {
 	}
 }
 
+func TestHandleGenericEscape(t *testing.T) {
+	generic := getEvent("events/push.json")
+	generic["object_kind"] = "foo & bar"
+	e := handleGeneric(generic, "{{.object_kind}}")
+	// fmt.Println(e)
+	if !strings.Contains(e, "foo & bar") {
+		t.Fatalf("could not handle html escape test case: %s", e)
+	}
+}
+
 func TestHandleGeneric2(t *testing.T) {
 	generic := getEvent("events/push.json")
 	e := handleGeneric(generic, "Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) \"1\"}} {{- (index .commits 0).message|truncatechars 50}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before|slice 0 7}}...{{.after|slice 0 7}}{{end}}")

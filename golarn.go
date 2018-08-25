@@ -14,6 +14,7 @@ import (
 	// "text/template"
 	"io"
 	"strings"
+	"text/template"
 )
 
 func handleEmpty(event map[string]interface{}, tmplString string) string {
@@ -27,7 +28,7 @@ func handleGeneric(event map[string]interface{}, tmplString string) string {
 	// if tmplString == "" {
 	// 	tmplString = "{{.object_kind}}: {{.}}"
 	// }
-	tmpl, err := gtf.New("test").Parse(tmplString)
+	tmpl, err := template.New("test").Funcs(gtf.GtfTextFuncMap).Parse(tmplString)
 	if err != nil {
 		panic(err)
 	}
