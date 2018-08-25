@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	// "text/template"
+	"io"
 	"strings"
 )
 
@@ -36,6 +37,20 @@ func handleGeneric(event map[string]interface{}, tmplString string) string {
 		panic(err)
 	}
 	return b.String()
+}
+
+func jsonMap(input io.Reader) (map[string]interface{}, error) {
+	decoder := json.NewDecoder(input)
+	var t interface{}
+	err := decoder.Decode(&t)
+	if t == nil {
+		return make(map[string]interface{}), fmt.Errorf("error decoding json")
+	}
+	ret := t.(map[string]interface{})
+	if err != nil {
+		return make(map[string]interface{}), fmt.Errorf("error transforming json")
+	}
+	return ret, nil
 }
 
 func withDefault(value string, fallback string) string {
@@ -114,20 +129,16 @@ func main() {
 		go irccon.Loop()
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		decoder := json.NewDecoder(r.Body)
-		var t interface{}
-		err := decoder.Decode(&t)
-		if t == nil {
-			// got some garbage posted
-			fmt.Fprintf(w, "Error: got garbage: %s\n", r.Body)
-			return
-		}
-		m := t.(map[string]interface{})
+	webhookHandler := func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		m, err := jsonMap(r.Body)
 		if err != nil {
 			irccon.Privmsgf(*channel, "Got JSON decoding error %s", err)
+			fmt.Fprintf(w, "Panic!\n")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		defer r.Body.Close()
+
 		// log.Println(t.Test)
 		fmt.Fprintf(w, "OK\n")
 		handleMap := map[string]func(map[string]interface{}, string) string{}
@@ -180,7 +191,7 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", webhookHandler)
 	http.HandleFunc("/healthz", healthz)
 	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -32,6 +32,25 @@ func TestDummy(t *testing.T) {
 	return
 }
 
+func TestJsonMap(t *testing.T) {
+	f, err := os.Open("events/push.json")
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+	m, err := jsonMap(f)
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+	n, ok := m["object_kind"]
+	if !ok {
+		t.Fatalf("couldn't parse json file")
+	}
+	if n != "push" {
+		t.Fatalf("wrong lookup ('push' != '%s')", n)
+	}
+
+}
+
 func TestHandleEmpty(t *testing.T) {
 	empty := getEvent("events/broken/no_object_kind.json")
 	e := handleEmpty(empty, "someignoredtemplatestring")
