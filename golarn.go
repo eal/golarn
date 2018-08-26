@@ -130,17 +130,6 @@ func main() {
 
 		// log.Println(t.Test)
 		fmt.Fprintf(w, "OK\n")
-		handleMap := map[string]func(map[string]interface{}, string) string{}
-		handleMap["build"] = handleGeneric
-		handleMap["issue"] = handleGeneric
-		handleMap["merge_request"] = handleGeneric
-		handleMap["note"] = handleGeneric
-		handleMap["pipeline"] = handleGeneric
-		handleMap["push"] = handleGeneric
-		// handleMap["tag_push"] = handleTag
-		// handleMap["tag_push"] = handleTagPush
-		handleMap["tag_push"] = handleGeneric
-		handleMap["wiki_page"] = handleGeneric
 
 		tmplMap := make(map[string]string)
 		tmplMap["build"] = withDefault(os.Getenv("GOLARN_BUILD_TEMPLATE"), "{{.object_kind}}: {{.}}")
@@ -156,13 +145,15 @@ func main() {
 		lookup, ok := m["object_kind"]
 		if ok {
 			objectKind := fmt.Sprintf("%s", lookup)
-			handleFunc, ok := handleMap[objectKind]
-			if ok {
+			envString := fmt.Sprintf("GOLARN_TEMPLATE_%s", strings.ToUpper(objectKind))
+			//handleFunc, ok := handleMap[objectKind]
+			template := os.Getenv(envString)
+			if template != "" {
 				tmpl := tmplMap[objectKind]
 				if !*dummy {
-					irccon.Privmsg(*channel, handleFunc(m, tmpl))
+					irccon.Privmsg(*channel, handleGeneric(m, tmpl))
 				} else {
-					fmt.Println(handleFunc(m, tmpl))
+					fmt.Println(handleGeneric(m, tmpl))
 				}
 			} else {
 				if !*dummy {
