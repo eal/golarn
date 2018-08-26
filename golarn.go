@@ -57,9 +57,8 @@ func jsonMap(input io.Reader) (map[string]interface{}, error) {
 func withDefault(value string, fallback string) string {
 	if value == "" {
 		return fallback
-	} else {
-		return value
 	}
+	return value
 }
 
 func withDefaultBool(value string, fallback bool) bool {
@@ -88,19 +87,7 @@ func main() {
 	dummy := flag.Bool("dummy", withDefaultBool(os.Getenv("GOLARN_DUMMY"), false), "dummy (don't connect to IRC, just print to stdout)")
 	verbose := flag.Bool("verbose", withDefaultBool(os.Getenv("GOLARN_VERBOSE"), false), "verbose (more messages)")
 	debug := flag.Bool("debug", withDefaultBool(os.Getenv("GOLARN_DEBUG"), false), "debug (more more messages)")
-	tlsString := os.Getenv("GOLARN_TLS")
-
-	// Roundabout way to set TLS option
-	useTLS := true
-	if tlsString != "" {
-		if tlsString == "FALSE" {
-			useTLS = false
-		} else {
-			useTLS = true
-		}
-	} else {
-		useTLS = *flag.Bool("tls", true, "Use TLS")
-	}
+	useTLS := flag.Bool("tls", withDefaultBool(os.Getenv("GOLARN_TLS"), true), "use TLS")
 
 	flag.Parse()
 	if *dummy {
@@ -110,7 +97,7 @@ func main() {
 	irccon.Password = *password
 	irccon.VerboseCallbackHandler = *verbose
 	irccon.Debug = *debug
-	irccon.UseTLS = useTLS
+	irccon.UseTLS = *useTLS
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	irccon.AddCallback("001", func(e *irc.Event) {
@@ -170,7 +157,7 @@ func main() {
 			objectKind := fmt.Sprintf("%s", lookup)
 			handleFunc, ok := handleMap[objectKind]
 			if ok {
-				tmpl, _ := tmplMap[objectKind]
+				tmpl := tmplMap[objectKind]
 				if !*dummy {
 					irccon.Privmsg(*channel, handleFunc(m, tmpl))
 				} else {
