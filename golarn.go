@@ -131,25 +131,13 @@ func main() {
 		// log.Println(t.Test)
 		fmt.Fprintf(w, "OK\n")
 
-		tmplMap := make(map[string]string)
-		tmplMap["build"] = withDefault(os.Getenv("GOLARN_BUILD_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		tmplMap["issue"] = withDefault(os.Getenv("GOLARN_ISSUE_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		tmplMap["merge_request"] = withDefault(os.Getenv("GOLARN_MERGE_REQUEST_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		tmplMap["note"] = withDefault(os.Getenv("GOLARN_NOTE_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		tmplMap["pipeline"] = withDefault(os.Getenv("GOLARN_PIPELINE_TEMPLATE"), "Pipeline: {{.}}")
-		tmplMap["push"] = withDefault(os.Getenv("GOLARN_PUSH_TEMPLATE"), "Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) \"1\"}} {{- (index .commits 0).message|truncatechars 50}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before|slice 0 7}}...{{.after|slice 0 7}}{{end}}")
-		tmplMap["tag_push"] = withDefault(os.Getenv("GOLARN_TAG_PUSH_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		tmplMap["wiki_page"] = withDefault(os.Getenv("GOLARN_WIKI_PAGE_TEMPLATE"), "{{.object_kind}}: {{.}}")
-		// tmplMap["tag_push"] = ""
-
 		lookup, ok := m["object_kind"]
 		if ok {
 			objectKind := fmt.Sprintf("%s", lookup)
 			envString := fmt.Sprintf("GOLARN_TEMPLATE_%s", strings.ToUpper(objectKind))
 			//handleFunc, ok := handleMap[objectKind]
-			template := os.Getenv(envString)
-			if template != "" {
-				tmpl := tmplMap[objectKind]
+			tmpl := os.Getenv(envString)
+			if tmpl != "" {
 				if !*dummy {
 					irccon.Privmsg(*channel, handleGeneric(m, tmpl))
 				} else {
