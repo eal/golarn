@@ -161,6 +161,7 @@ func main() {
 
 	http.HandleFunc("/webhook", webhookHandler)
 	http.HandleFunc("/healthz", healthz)
+	http.HandleFunc("/", healthz)
 	http.Handle("/metrics", promhttp.Handler())
 	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))
