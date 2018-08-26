@@ -180,7 +180,7 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/", webhookHandler)
+	http.HandleFunc("/webhook", webhookHandler)
 	http.HandleFunc("/healthz", healthz)
 	http.Handle("/metrics", promhttp.Handler())
 	fmt.Println("Starting HTTP loop")
