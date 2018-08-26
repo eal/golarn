@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	// "text/template"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"strings"
 	"text/template"
@@ -181,6 +182,7 @@ func main() {
 
 	http.HandleFunc("/", webhookHandler)
 	http.HandleFunc("/healthz", healthz)
+	http.Handle("/metrics", promhttp.Handler())
 	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	fmt.Println("Shutting down")
