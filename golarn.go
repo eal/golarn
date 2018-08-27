@@ -122,9 +122,9 @@ func main() {
 		defer r.Body.Close()
 		m, err := jsonMap(r.Body)
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			irccon.Privmsgf(*channel, "Got JSON decoding error %s", err)
 			fmt.Fprintf(w, "Panic!\n")
-			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
