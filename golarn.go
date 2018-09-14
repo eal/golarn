@@ -72,6 +72,16 @@ func withDefaultBool(value string, fallback bool) bool {
 	}
 }
 
+func verifyChannel(targetChannel string, channels string) bool {
+	targetOk := false
+	for _, c := range strings.Split(channels, " ") {
+		if c == targetChannel {
+			targetOk = true
+		}
+	}
+	return targetOk
+}
+
 func healthz(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Golare har inga polare")
 }
@@ -81,7 +91,7 @@ func main() {
 	nick := flag.String("nick", withDefault(os.Getenv("GOLARN_NICK"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "nickname")
 	username := flag.String("username", withDefault(os.Getenv("GOLARN_USER"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "username")
 	server := flag.String("server", withDefault(os.Getenv("GOLARN_SERVER"), "efnet.port80.se:6697"), "server:port")
-	channel := flag.String("channel", withDefault(os.Getenv("GOLARN_CHANNEL"), "#golarn_test"), "channel to join")
+	channels := flag.String("channel", withDefault(os.Getenv("GOLARN_CHANNEL"), "#golarn_test"), "channels to join/whitelist of nicknames")
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
 	password := flag.String("password", withDefault(os.Getenv("GOLARN_PASSWORD"), "t0ps3cr3t"), "password")
 	part := flag.String("part", withDefault(os.Getenv("GOLARN_PART"), ""), "leave auto-joined channel on startup")
@@ -102,11 +112,16 @@ func main() {
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	irccon.AddCallback("001", func(e *irc.Event) {
-		irccon.Join(*channel)
-		if *part != "" {
-			irccon.Part(*part)
+		for _, channel := range strings.Split(*channels, " ") {
+			if channel[0] == '#' {
+				irccon.Join(channel)
+			}
+			if *part != "" {
+				irccon.Part(*part)
+			}
 		}
 	})
+
 	irccon.AddCallback("366", func(e *irc.Event) {})
 	if !*dummy {
 		err := irccon.Connect(*server)
@@ -120,10 +135,32 @@ func main() {
 
 	webhookHandler := func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
+		// get channel
+		p := strings.Split(r.URL.Path, "/")
+		if len(p) < 2 || len(p) > 3 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "couldn't parse URL, %v %d\n", p, len(p))
+			return
+		}
+		var targetChannel string
+		if len(p) == 3 {
+			targetChannel = p[2]
+
+			if !verifyChannel(targetChannel, *channels) {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "Channel %s not found in valid channels (%s)", targetChannel, *channels)
+				return
+			}
+
+		} else {
+			// no target given, use the first as default
+			targetChannel = strings.Split(*channels, " ")[0]
+		}
+
 		m, err := jsonMap(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			irccon.Privmsgf(*channel, "Got JSON decoding error %s", err)
+			irccon.Privmsgf(targetChannel, "Got JSON decoding error %s", err)
 			fmt.Fprintf(w, "Panic!\n")
 			return
 		}
@@ -139,7 +176,7 @@ func main() {
 			tmpl := os.Getenv(envString)
 			if tmpl != "" {
 				if !*dummy {
-					irccon.Privmsg(*channel, handleGeneric(m, tmpl))
+					irccon.Privmsg(targetChannel, handleGeneric(m, tmpl))
 				} else {
 					fmt.Println(handleGeneric(m, tmpl))
 				}

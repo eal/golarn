@@ -116,6 +116,15 @@ func TestWithDefaultBool(t *testing.T) {
 		t.Fatalf("withDefault returns default when it shouldn't (2)")
 	}
 }
+func TestVerifyChannel(t *testing.T) {
+	if !verifyChannel("#foo", "#this #that #foo #bar someone") {
+		t.Fatalf("couldn't verify channel")
+	}
+	if verifyChannel("#foo", "#this #that #bar someone") {
+		t.Fatalf("erroneously verified invalid channel")
+	}
+
+}
 
 func TestHealthz(t *testing.T) {
 	req, err := http.NewRequest("GET", "/healthz", nil)
