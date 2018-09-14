@@ -83,6 +83,10 @@ func verifyChannel(targetChannel string, channels string) bool {
 }
 
 func healthz(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "OK, healthy")
+}
+
+func fallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Golare har inga polare")
 }
 
@@ -91,7 +95,7 @@ func main() {
 	nick := flag.String("nick", withDefault(os.Getenv("GOLARN_NICK"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "nickname")
 	username := flag.String("username", withDefault(os.Getenv("GOLARN_USER"), withDefault(os.Getenv("HOSTNAME"), "golarn")), "username")
 	server := flag.String("server", withDefault(os.Getenv("GOLARN_SERVER"), "efnet.port80.se:6697"), "server:port")
-	channels := flag.String("channel", withDefault(os.Getenv("GOLARN_CHANNEL"), "#golarn_test"), "channels to join/whitelist of nicknames")
+	channels := flag.String("channels", withDefault(os.Getenv("GOLARN_CHANNELS"), "#golarn_test"), "channels to join/whitelist of nicknames")
 	adminNick := flag.String("admin", withDefault(os.Getenv("GOLARN_ADMIN"), "someadminuser"), "admin nickname")
 	password := flag.String("password", withDefault(os.Getenv("GOLARN_PASSWORD"), "t0ps3cr3t"), "password")
 	part := flag.String("part", withDefault(os.Getenv("GOLARN_PART"), ""), "leave auto-joined channel on startup")
@@ -137,15 +141,21 @@ func main() {
 		defer r.Body.Close()
 		// get channel
 		p := strings.Split(r.URL.Path, "/")
-		if len(p) < 2 || len(p) > 3 {
+		if len(p) != 3 {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "couldn't parse URL, %v %d\n", p, len(p))
 			return
 		}
 		var targetChannel string
-		if len(p) == 3 {
-			targetChannel = p[2]
-
+		if len(p[2]) != 0 {
+			// We got a channel name
+			if p[2][0] == '@' {
+				// directed at user
+				targetChannel = p[2][1:]
+			} else {
+				// to channel, prepend #
+				targetChannel = fmt.Sprintf("#%v", p[2])
+			}
 			if !verifyChannel(targetChannel, *channels) {
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprintf(w, "Channel %s not found in valid channels (%s)", targetChannel, *channels)
@@ -178,6 +188,7 @@ func main() {
 				if !*dummy {
 					irccon.Privmsg(targetChannel, handleGeneric(m, tmpl))
 				} else {
+					fmt.Printf(">>> %v\n", targetChannel)
 					fmt.Println(handleGeneric(m, tmpl))
 				}
 			} else {
@@ -196,9 +207,9 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/webhook", webhookHandler)
+	http.HandleFunc("/webhook/", webhookHandler)
 	http.HandleFunc("/healthz", healthz)
-	http.HandleFunc("/", healthz)
+	http.HandleFunc("/", fallback)
 	http.Handle("/metrics", promhttp.Handler())
 	fmt.Println("Starting HTTP loop")
 	log.Fatal(http.ListenAndServe(":8080", nil))
