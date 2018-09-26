@@ -1,21 +1,3 @@
-* How it works
-
-When golarn receives a webhook call on /webhook it will examine the
-posted json.  The json should contain an object with the key
-"object_kind".  Golarn will look at the value (say "foo") and then
-look for an env var called GOLARN_TEMPLATE_FOO.  This should be a Go
-template, possibly using the extra functionality from
-https://github.com/leekchan/gtf, and render a message to be sent to
-IRC.
-
-** Example
-If we have this env var set:
-#+BEGIN_SRC shell-script
-GOLARN_TEMPLATE_PUSH='Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) "1"}} {{- (index .commits 0).message|truncatechars 50}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before|slice 0 7}}...{{.after|slice 0 7}}{{end}}'
-#+END_SRC
-
-and post this json
-#+BEGIN_SRC json
 {
   "object_kind": "push",
   "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
@@ -57,7 +39,7 @@ and post this json
   "commits": [
     {
       "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
-      "message": "Update Catalan translation to e38cb41.",
+      "message": "First line. \n And another line, for good measure.",
       "timestamp": "2011-12-12T14:27:31+02:00",
       "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
       "author": {
@@ -71,22 +53,3 @@ and post this json
   ],
   "total_commits_count": 1
 }
-
-#+END_SRC 
-golarn will send this message to IRC:
-#+BEGIN_EXAMPLE
-Push from jsmith on Diaspora: Update Catalan translation to e38cb41. http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327
-#+END_EXAMPLE
-
-* Testing
-** Testing hooks
-#+BEGIN_EXAMPLE
-for i in events/*.json; do echo -n $i '== ' ; curl -XPOST localhost:8080/webhook -H "Content-Type: application/json" -d@$i; done
-#+END_EXAMPLE
-
-* Suggested ENV settings
-#+BEGIN_SRC shell-script
-GOLARN_TEMPLATE_PUSH='Push from {{.user_username}} on {{.project.name}}: {{if eq (print .total_commits_count) "1"}} {{- (index .commits 0).message | joinlines | truncatechars 50|trim}} {{(index .commits 0).url}} {{else}} {{- .total_commits_count}} commits {{.project.web_url}}/compare/{{.before|slice 0 7}}...{{.after|slice 0 7}}{{end}}'
-#+END_SRC
-
-

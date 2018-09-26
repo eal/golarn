@@ -29,7 +29,13 @@ func handleGeneric(event map[string]interface{}, tmplString string) string {
 	// if tmplString == "" {
 	// 	tmplString = "{{.object_kind}}: {{.}}"
 	// }
-	tmpl, err := template.New("test").Funcs(gtf.GtfTextFuncMap).Parse(tmplString)
+	funcMap := gtf.GtfTextFuncMap
+	funcMap["joinlines"] = func(s string) string {
+		//fl := strings.Split(s, "\n")[0]
+		fl := strings.Replace(s, "\n", "|", -1)
+		return fl
+	}
+	tmpl, err := template.New("test").Funcs(funcMap).Parse(tmplString)
 	if err != nil {
 		panic(err)
 	}
